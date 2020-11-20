@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/gographics/imagick.v3/imagick"
 )
@@ -16,29 +17,15 @@ func process(path string) error {
 		return nil
 	}
 
-	height := mw.GetImageHeight()
-	width := mw.GetImageWidth()
-
-	if height == 650 && width == 650 {
-		// assume already processed
-		return nil
-	}
+	height := int(mw.GetImageHeight())
+	width := int(mw.GetImageWidth())
 
 	bg := imagick.NewPixelWand()
 	bg.SetColor("white")
+	mw.SetImageBackgroundColor(bg)
 
-	var borderWidth uint
-	if height > width {
-		borderWidth = (height - width) / 2
-		mw.SpliceImage(borderWidth, 0, int(width), 0)
-		mw.SpliceImage(borderWidth, 0, 0, 0)
-	} else {
-		borderWidth = (width - height) / 2
-		mw.SpliceImage(0, borderWidth, 0, int(height))
-		mw.SpliceImage(0, borderWidth, 0, 0)
-	}
-
-	mw.ScaleImage(650, 650)
+	const scaleTo = 2048
+	mw.ExtentImage(scaleTo, scaleTo, -(scaleTo-width)/2, -(scaleTo-height)/2)
 
 	ext := filepath.Ext(path)
 	base := path[0 : len(path)-len(ext)]
@@ -67,6 +54,11 @@ func main() {
 			}
 
 			if info.IsDir() {
+				return nil
+			}
+
+			if strings.Contains(path, "adjusted") {
+				// assume already processed
 				return nil
 			}
 
