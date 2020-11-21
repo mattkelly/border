@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/otiai10/copy"
 	"gopkg.in/gographics/imagick.v3/imagick"
 )
 
@@ -32,6 +33,11 @@ func process(path string) error {
 	adjusted := fmt.Sprintf("%s-adjusted%s", base, ext)
 	mw.WriteImage(adjusted)
 
+	// delete original
+	if err := os.Remove(path); err != nil {
+		fmt.Fprintf(os.Stderr, "Error deleting %q: %v\n", path, err)
+	}
+
 	return nil
 }
 
@@ -45,8 +51,13 @@ func main() {
 	}
 
 	dir := os.Args[1]
+	newDir := dir + "-adjusted"
+	if err := copy.Copy(dir, newDir); err != nil {
+		fmt.Fprintf(os.Stderr, "Error copying %q: %v\n", dir, err)
+		os.Exit(2)
+	}
 
-	filepath.Walk(dir,
+	filepath.Walk(newDir,
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				fmt.Printf("Ignoring error: %v", err)
@@ -57,7 +68,7 @@ func main() {
 				return nil
 			}
 
-			if strings.Contains(path, "adjusted") {
+			if strings.Contains(filepath.Base(path), "adjusted") {
 				// assume already processed
 				return nil
 			}
