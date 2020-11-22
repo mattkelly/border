@@ -18,6 +18,19 @@ func process(path string) error {
 		return nil
 	}
 
+	if err := mw.SetImageAlphaChannel(imagick.ALPHA_CHANNEL_DEACTIVATE); err != nil {
+		panic(err)
+	}
+
+	bg := imagick.NewPixelWand()
+	bg.SetColor("white")
+	mw.SetBackgroundColor(bg)
+
+	// When reading an image with layers, each layer is read as a separate
+	// image into the wand. Reset to the first image before processing.
+	mw.ResetIterator()
+	mw = mw.MergeImageLayers(imagick.IMAGE_LAYER_MERGE)
+
 	h := int(mw.GetImageHeight())
 	w := int(mw.GetImageWidth())
 
@@ -38,6 +51,13 @@ func process(path string) error {
 
 	ext := filepath.Ext(path)
 	base := path[0 : len(path)-len(ext)]
+
+	// tiffs are weird; just convert to png instead
+	if mw.GetImageFormat() == "TIFF" {
+		mw.SetImageFormat("PNG")
+		ext = ".png"
+	}
+
 	adjusted := fmt.Sprintf("%s-adjusted%s", base, ext)
 	mw.WriteImage(adjusted)
 
