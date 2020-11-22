@@ -18,15 +18,23 @@ func process(path string) error {
 		return nil
 	}
 
-	height := int(mw.GetImageHeight())
-	width := int(mw.GetImageWidth())
+	h := int(mw.GetImageHeight())
+	w := int(mw.GetImageWidth())
 
-	bg := imagick.NewPixelWand()
-	bg.SetColor("white")
-	mw.SetImageBackgroundColor(bg)
+	// use 20% of the longest side as the minimum border width
+	var scaleTo int
+	if h > w {
+		scaleTo = h + int(0.2*float32(h))
+	} else {
+		scaleTo = w + int(0.2*float32(w))
+	}
 
-	const scaleTo = 2048
-	mw.ExtentImage(scaleTo, scaleTo, -(scaleTo-width)/2, -(scaleTo-height)/2)
+	mw.ExtentImage(uint(scaleTo), uint(scaleTo), -(scaleTo-w)/2, -(scaleTo-h)/2)
+
+	if scaleTo > 2048 {
+		// make smaller just to save space
+		mw.ScaleImage(2048, 2048)
+	}
 
 	ext := filepath.Ext(path)
 	base := path[0 : len(path)-len(ext)]
